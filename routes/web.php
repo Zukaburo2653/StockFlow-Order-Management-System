@@ -35,3 +35,5 @@ Route::middleware(['auth'])->group(function () {
     // PENDING → CANCELLED (+ stock restore)
     Route::delete('/orders/{order}/cancel', [WebOrderController::class, 'cancel'])->name('orders.cancel');
 });
+
+//Hello mayur 
