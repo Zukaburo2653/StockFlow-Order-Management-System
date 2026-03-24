@@ -2,72 +2,44 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        return response()->json(Product::all());
-    }
+    // ─── GET /api/products ────────────────────────────────────────────────────
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function index(Request $request): JsonResponse
     {
-        //
-    }
+        $products = Product::query()
+            ->when($request->boolean('in_stock'), fn ($q) => $q->where('stock', '>', 0))
+            ->when($request->boolean('active_only', true), fn ($q) => $q->where('is_active', true))
+            ->when($request->search, fn ($q, $s) => $q->where('name', 'like', "%{$s}%"))
+            ->latest()
+            ->paginate($request->integer('per_page', 20));
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string',
-            'price' => 'required|numeric',
-            'stock' => 'required|integer|min:0',
+        return response()->json([
+            'success' => true,
+            'data'    => ProductResource::collection($products->items()),
+            'meta'    => [
+                'current_page' => $products->currentPage(),
+                'last_page'    => $products->lastPage(),
+                'per_page'     => $products->perPage(),
+                'total'        => $products->total(),
+            ],
         ]);
-
-        $product = Product::create($validated);
-
-        return response()->json($product, 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Product $produt)
-    {
-        //
-    }
+    // ─── GET /api/products/{product} ──────────────────────────────────────────
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Product $produt)
+    public function show(Product $product): JsonResponse
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Product $produt)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Product $produt)
-    {
-        //
+        return response()->json([
+            'success' => true,
+            'data'    => new ProductResource($product),
+        ]);
     }
 }
